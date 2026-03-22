@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1e88e5">
-  <title>我的旅行行程規劃器</title>
+  <meta name="theme-color" content="#e91e63">
+  <title>我的旅行行程</title>
   
   <link rel="manifest" href="data:application/manifest+json,{
     %22name%22:%22%E6%88%91%E7%9A%84%E6%97%85%E8%A1%8C%E8%A1%8C%E7%A8%8B%E8%A6%8F%E5%8A%83%E5%99%A8%22,
@@ -12,99 +12,301 @@
     %22start_url%22:%22.%22,
     %22display%22:%22standalone%22,
     %22background_color%22:%22%23ffffff%22,
-    %22theme_color%22:%22%231e88e5%22,
+    %22theme_color%22:%22%23e91e63%22,
     %22icons%22:[{%22src%22:%22https://cdn-icons-png.flaticon.com/512/1041/1041916.png%22,%22sizes%22:%22192x192%22,%22type%22:%22image/png%22}]
   }">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    :root { --primary: #1e88e5; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-      margin:0; padding:12px; background:#e3f2fd; 
+    :root {
+      --primary: #e91e63;
+      --accent: #ff4081;
     }
-    .container { 
-      max-width:1000px; margin:auto; background:white; 
-      border-radius:28px; box-shadow:0 15px 45px rgba(0,0,0,0.1); overflow:hidden; 
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+      color: #333;
     }
-    header { 
-      background:linear-gradient(135deg, #1e88e5, #1565c0); 
-      color:white; padding:40px 20px 32px; text-align:center; 
-    }
-    .upload { padding:25px; text-align:center; background:#e3f2fd; }
-    button { 
-      padding:16px 24px; margin:8px 4px; background:var(--primary); 
-      color:white; border:none; border-radius:18px; cursor:pointer; 
-      font-size:1.08rem; font-weight:600; width:100%; max-width:340px; 
-    }
-
-    /* Day Card - 放大版 */
-    .day-card {
-      background:#f8fdff;
-      margin:20px 12px;
-      border-radius:26px;
-      padding:32px;
-      box-shadow:0 8px 30px rgba(0,0,0,0.06);
-    }
-    .day-date { font-size:1.65rem; font-weight:700; margin-bottom:8px; }
-    .day-total { font-size:1.4rem; color:#2e7d32; font-weight:600; }
-
-    .route-btn {
-      background:#42a5f5;
-      color:white;
-      border-radius:50px;
-      padding:16px 24px;
-      font-size:1.05rem;
-      width:100%;
-      margin-top:16px;
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      background: white;
+      min-height: 100vh;
+      box-shadow: 0 0 30px rgba(0,0,0,0.08);
+      overflow: hidden;
     }
 
-    /* Timeline - 只有線條，無藍點 */
-    .timeline { position:relative; margin:12px 25px 40px; padding-left:40px; }
-    .timeline::before { 
-      content:''; position:absolute; left:18px; top:0; bottom:0; 
-      width:4px; background:linear-gradient(#29b6f6, #0288d1); border-radius:10px; 
+    /* ===== 粉紅 App 風格 Header ===== */
+    .app-header {
+      background: linear-gradient(135deg, #e91e63, #ff4081);
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .app-header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+    }
+    .header-icons {
+      display: flex;
+      gap: 16px;
+      font-size: 1.4rem;
     }
 
-    .event { position:relative; margin:42px 0; }
-    /* 藍點已移除 */
-
-    .event-card { 
-      background:white; 
-      margin-left:45px; 
-      padding:32px; 
-      border-radius:24px; 
-      box-shadow:0 8px 32px rgba(0,0,0,0.07); 
+    /* ===== Hero 大圖 ===== */
+    .hero {
+      height: 220px;
+      background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('https://picsum.photos/id/1015/1200/600') center/cover no-repeat;
+      display: flex;
+      align-items: flex-end;
+      padding: 20px;
+      color: white;
+      position: relative;
     }
-    .event-card strong { 
-      font-size:1.48rem; 
-      color:var(--primary); 
-      display:block; 
-      margin-bottom:8px; 
+    .hero-info {
+      background: rgba(255,255,255,0.95);
+      color: #333;
+      border-radius: 16px;
+      padding: 14px 20px;
+      width: 100%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .hero-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 0 0 4px;
+    }
+    .hero-date {
+      font-size: 0.95rem;
+      opacity: 0.85;
     }
 
-    .summary { 
-      padding:24px; background:#e3f2fd; text-align:center; 
-      font-size:1.45rem; font-weight:bold; color:#2e7d32; 
-      margin:20px 12px; border-radius:24px; 
+    /* ===== Day Tabs ===== */
+    .day-tabs {
+      display: flex;
+      overflow-x: auto;
+      background: white;
+      padding: 12px 8px;
+      gap: 8px;
+      border-bottom: 1px solid #eee;
+      scrollbar-width: none;
+    }
+    .day-tab {
+      flex: 0 0 auto;
+      padding: 10px 20px;
+      background: #f8f8f8;
+      border-radius: 30px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: all 0.3s;
+    }
+    .day-tab.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(233,30,99,0.3);
+    }
+
+    /* ===== Upload 區塊 ===== */
+    .upload {
+      padding: 16px;
+      background: #fff;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      margin: 6px 4px;
+      border-radius: 50px;
+      font-size: 1.02rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    /* ===== Timeline 全新 App 風格 ===== */
+    .timeline-container {
+      padding: 0 16px 80px;
+    }
+    .day-section {
+      margin-bottom: 32px;
+    }
+    .day-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0 12px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #222;
+    }
+    .day-total {
+      margin-left: auto;
+      color: #2e7d32;
+      font-size: 1.05rem;
+    }
+
+    .event {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 28px;
+      position: relative;
+    }
+    .event::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 38px;
+      bottom: -20px;
+      width: 3px;
+      background: linear-gradient(#ff4081, #e91e63);
+      z-index: 0;
+    }
+    .event:last-child::before { display: none; }
+
+    .time-dot {
+      width: 42px;
+      text-align: center;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+    .time {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #666;
+      display: block;
+    }
+    .dot {
+      width: 38px;
+      height: 38px;
+      background: white;
+      border: 4px solid var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 6px auto;
+      box-shadow: 0 4px 12px rgba(233,30,99,0.25);
+    }
+
+    .event-card {
+      flex: 1;
+      background: white;
+      border-radius: 20px;
+      padding: 18px 20px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      position: relative;
+    }
+    .event-card h3 {
+      margin: 0 0 6px;
+      font-size: 1.22rem;
+      font-weight: 700;
+    }
+    .event-card small {
+      color: #666;
+      line-height: 1.5;
+      display: block;
+    }
+    .transport {
+      margin-top: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #f0f0f0;
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+    }
+
+    /* Nav 按鈕 */
+    .nav-btn {
+      margin-top: 14px;
+      background: #66bb6a;
+      color: white;
+      border-radius: 50px;
+      padding: 12px 24px;
+      font-size: 1rem;
+      width: 100%;
+    }
+
+    /* Summary */
+    .summary {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 480px;
+      width: 100%;
+      background: white;
+      padding: 18px;
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #2e7d32;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+      z-index: 200;
+      border-radius: 20px 20px 0 0;
+    }
+
+    @media (max-width: 480px) {
+      .container { box-shadow: none; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1>我的旅行行程規劃器</h1>
-    </header>
-
-    <div class="upload">
-      <input type="file" id="fileInput" accept=".xlsx,.csv"><br><br>
-      <button onclick="loadSampleData()">📋 載入馬來西亞 5 天範例</button>
-      <button onclick="exportCSV()">📥 匯出 CSV</button>
-      <button onclick="window.print()">📄 匯出 PDF</button>
-      <button onclick="clearData()">🗑️ 清除資料</button>
+    <!-- 粉紅 App Header -->
+    <div class="app-header">
+      <div onclick="history.back()" style="cursor:pointer;">←</div>
+      <h1>我的旅行行程</h1>
+      <div class="header-icons">
+        <span onclick="alert('幫助說明即將推出！')">❔</span>
+        <span onclick="alert('編輯模式開發中')">✏️</span>
+        <span onclick="alert('分享功能開發中')">🔗</span>
+      </div>
     </div>
 
-    <div id="timelineContainer"></div>
+    <!-- Hero 大圖 -->
+    <div class="hero">
+      <div class="hero-info">
+        <div class="hero-title">馬來西亞 5 天經典之旅</div>
+        <div class="hero-date">2026/04/05 — 2026/04/09　｜　吉隆坡・雲頂・馬六甲</div>
+      </div>
+    </div>
+
+    <!-- 上傳區塊（保留功能） -->
+    <div class="upload">
+      <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
+      <button onclick="document.getElementById('fileInput').click()">📤 上傳 Excel / CSV</button>
+      <button onclick="loadSampleData()">📋 載入馬來西亞 5 天範例</button>
+      <button onclick="exportCSV()">📥 匯出 CSV</button>
+      <button onclick="window.print()">📄 列印 / 匯出 PDF</button>
+      <button onclick="clearData()" style="background:#f44336;">🗑️ 清除所有資料</button>
+    </div>
+
+    <!-- Day Tabs -->
+    <div id="dayTabs" class="day-tabs"></div>
+
+    <!-- Timeline -->
+    <div id="timelineContainer" class="timeline-container"></div>
+
+    <!-- 總結（固定底部） -->
     <div id="totalSummary" class="summary" style="display:none;"></div>
   </div>
 
@@ -122,11 +324,12 @@
 
     function getTransportMode(transport) {
       const t = (transport || '').toLowerCase();
-      if (t.includes('grab') || t.includes('車')) return 'driving';
-      if (t.includes('mrt') || t.includes('ets') || t.includes('渡輪')) return 'transit';
-      return 'walking';
+      if (t.includes('grab') || t.includes('車') || t.includes('taxi')) return '🚕';
+      if (t.includes('mrt') || t.includes('ets') || t.includes('bus') || t.includes('渡輪')) return '🚇';
+      return '🚶';
     }
 
+    // 檔案上傳
     document.getElementById('fileInput').addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
@@ -138,13 +341,11 @@
             const workbook = XLSX.read(data, {type: 'array'});
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             let raw = XLSX.utils.sheet_to_json(sheet);
-
             let currentDate = '';
             raw.forEach(row => {
               if (row['日期'] && String(row['日期']).trim() !== '') currentDate = String(row['日期']).trim();
               else if (currentDate) row['日期'] = currentDate;
             });
-
             trips = raw.filter(r => r['時間'] || r['地點']);
           } else {
             trips = parseCSV(ev.target.result);
@@ -170,8 +371,32 @@
     }
 
     function renderAll() {
+      renderDayTabs();
       renderTimeline();
       renderSummary();
+    }
+
+    function renderDayTabs() {
+      const tabsContainer = document.getElementById('dayTabs');
+      tabsContainer.innerHTML = '';
+      const grouped = {};
+      trips.forEach(row => {
+        const date = row['日期'] || '未分類';
+        if (!grouped[date]) grouped[date] = [];
+        grouped[date].push(row);
+      });
+
+      Object.keys(grouped).sort().forEach((date, idx) => {
+        const tab = document.createElement('div');
+        tab.className = 'day-tab' + (idx === 0 ? ' active' : '');
+        tab.textContent = date;
+        tab.onclick = () => {
+          document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById('timelineContainer').scrollIntoView({ behavior: 'smooth' });
+        };
+        tabsContainer.appendChild(tab);
+      });
     }
 
     function renderTimeline() {
@@ -189,47 +414,45 @@
         const dayTrips = grouped[date];
         const dayTotal = dayTrips.reduce((sum, r) => sum + extractCost(r['$$']), 0);
 
-        let waypoints = dayTrips.map(r => encodeURIComponent(r['地點'] || '')).filter(Boolean).join('|');
-        const dayMapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(dayTrips[0]?.['地點'] || '')}&destination=${encodeURIComponent(dayTrips[dayTrips.length-1]?.['地點'] || '')}&waypoints=${waypoints}&travelmode=driving`;
-
         let html = `
-          <div class="day-card">
-            <div class="day-date">${date}</div>
-            <div class="day-total">小計 RM ${dayTotal.toFixed(0)}</div>
-            <button class="route-btn" onclick="window.open('${dayMapUrl}','_blank')">📍 查看當天完整路線</button>
-          </div>
-          <div class="timeline">`;
+          <div class="day-section">
+            <div class="day-header">
+              ${date}
+              <span class="day-total">小計 RM ${dayTotal.toFixed(0)}</span>
+            </div>`;
 
         let prevLoc = '';
-
-        dayTrips.forEach(r => {
+        dayTrips.forEach((r, i) => {
           const costNum = extractCost(r['$$']);
-          const originalCost = r['$$'] || '—';
           const currentLoc = r['地點'] || '';
-          const mode = getTransportMode(r['交通']);
+          const modeIcon = getTransportMode(r['交通']);
           const encodedCurrent = encodeURIComponent(currentLoc);
-
           let mapUrl = prevLoc 
-            ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(prevLoc)}&destination=${encodedCurrent}&travelmode=${mode}`
-            : `https://www.google.com/maps/search/?api=1&query=${encodedCurrent}&travelmode=${mode}`;
+            ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(prevLoc)}&destination=${encodedCurrent}&travelmode=driving`
+            : `https://www.google.com/maps/search/?api=1&query=${encodedCurrent}`;
 
           html += `
             <div class="event">
+              <div class="time-dot">
+                <div class="time">${r['時間'] || ''}</div>
+                <div class="dot">${i+1}</div>
+              </div>
               <div class="event-card">
-                <strong>${r['時間'] || ''}</strong>
-                <b style="font-size:1.48rem;">${currentLoc}</b><br>
+                <h3>${currentLoc}</h3>
                 <small>
                   營業時間：${r['營業時間'] || '—'}<br>
-                  費用：${originalCost} （計算用 RM ${costNum.toFixed(0)}）<br>
-                  交通：${r['交通'] || '—'}<br>
+                  費用：${r['$$'] || '—'} （計算 RM ${costNum.toFixed(0)}）<br>
                   重點：${r['重點'] || ''}
                 </small>
-                <button class="nav-btn" onclick="window.open('${mapUrl}','_blank')">🗺️ 從上一個地點導航</button>
+                <div class="transport">
+                  ${modeIcon} ${r['交通'] || '—'}
+                </div>
+                <button class="nav-btn" onclick="window.open('${mapUrl}','_blank')">🗺️ 導航到此地點</button>
               </div>
             </div>`;
-
           prevLoc = currentLoc;
         });
+
         html += `</div>`;
         container.innerHTML += html;
       });
@@ -237,8 +460,9 @@
 
     function renderSummary() {
       const total = trips.reduce((sum, r) => sum + extractCost(r['$$']), 0);
+      const days = new Set(trips.map(r => r['日期'])).size;
       const el = document.getElementById('totalSummary');
-      el.innerHTML = `全行程總預估費用：RM ${total.toFixed(0)}`;
+      el.innerHTML = `全行程總預估費用：RM ${total.toFixed(0)}　｜　共 ${days} 天`;
       el.style.display = 'block';
     }
 
@@ -261,14 +485,33 @@
         trips = [];
         document.getElementById('timelineContainer').innerHTML = '';
         document.getElementById('totalSummary').style.display = 'none';
+        document.getElementById('dayTabs').innerHTML = '';
       }
     }
 
     function loadSampleData() {
-      trips = [ /* 你的馬來西亞範例 */ ];
+      trips = [
+        {"日期":"2026/04/05 (Day 1)","時間":"09:30","地點":"吉隆坡國際機場 (KLIA)","營業時間":"全天","$$":"RM 0","交通":"KLIA Ekspres","重點":"抵達馬來西亞"},
+        {"日期":"2026/04/05 (Day 1)","時間":"11:00","地點":"Bukit Bintang 酒店區","營業時間":"全天","$$":"RM 180","交通":"Grab","重點":"Check-in + 午餐"},
+        {"日期":"2026/04/05 (Day 1)","時間":"14:00","地點":"中央市場 (Pasar Seni)","營業時間":"10:00-22:00","$$":"RM 45","交通":"Walking","重點":"手工藝品"},
+        {"日期":"2026/04/05 (Day 1)","時間":"18:30","地點":"Jalan Alor 美食街","營業時間":"17:00-00:00","$$":"RM 85","交通":"Grab","重點":"街頭美食"},
+
+        {"日期":"2026/04/06 (Day 2)","時間":"09:00","地點":"雙子塔 (Petronas Twin Towers)","營業時間":"09:00-21:00","$$":"RM 85","交通":"Grab","重點":"登塔觀景"},
+        {"日期":"2026/04/06 (Day 2)","時間":"12:00","地點":"KLCC 公園","營業時間":"全天","$$":"RM 0","交通":"Walking","重點":"噴泉拍照"},
+        {"日期":"2026/04/06 (Day 2)","時間":"15:00","地點":"國家清真寺","營業時間":"09:00-19:00","$$":"RM 0","交通":"MRT","重點":"建築巡禮"},
+
+        {"日期":"2026/04/07 (Day 3)","時間":"08:00","地點":"黑風洞 (Batu Caves)","營業時間":"07:00-19:00","$$":"RM 0","交通":"Grab","重點":"彩虹階梯"},
+        {"日期":"2026/04/07 (Day 3)","時間":"12:00","地點":"雲頂高原","營業時間":"全天","$$":"RM 120","交通":"Cable Car","重點":"纜車遊樂園"},
+
+        {"日期":"2026/04/08 (Day 4)","時間":"07:30","地點":"馬六甲紅屋 (Stadthuys)","營業時間":"09:00-17:00","$$":"RM 10","交通":"Bus","重點":"荷蘭殖民建築"},
+        {"日期":"2026/04/08 (Day 4)","時間":"13:00","地點":"雞場街 Jonker Street","營業時間":"10:00-22:00","$$":"RM 80","交通":"Walking","重點":"美食古董"},
+
+        {"日期":"2026/04/09 (Day 5)","時間":"09:00","地點":"Suria KLCC 購物中心","營業時間":"10:00-22:00","$$":"RM 120","交通":"Grab","重點":"最後購物"},
+        {"日期":"2026/04/09 (Day 5)","時間":"16:00","地點":"吉隆坡國際機場 (KLIA)","營業時間":"全天","$$":"RM 0","交通":"KLIA Ekspres","重點":"返程"}
+      ];
       localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
       renderAll();
-      alert("✅ 已載入範例！");
+      alert("✅ 已載入馬來西亞 5 天經典範例！");
     }
 
     window.onload = () => {
