@@ -29,7 +29,7 @@
   <div class="container">
     <header>
       <h1>🇲🇾 我的馬來西亞 5 天完整行程</h1>
-      <p>已處理 merged cells • 支援 Excel + CSV • 自動填日期</p>
+      <p>已處理 merged cells + RM 費用解析 • 不再顯示 NaN</p>
     </header>
 
     <div class="upload">
@@ -45,6 +45,17 @@
   <script>
     let trips = [];
 
+    // 新增：智慧費用解析器（解決 RM 25 / RM 65-80 NaN 問題）
+    function extractCost(val) {
+      if (!val) return 0;
+      const str = String(val).toUpperCase().replace(/RM| |\$/g, '').trim();
+      const matches = str.match(/\d+\.?\d*/g);
+      if (!matches) return 0;
+      const nums = matches.map(Number);
+      if (nums.length === 1) return nums[0];
+      return (nums[0] + nums[nums.length-1]) / 2; // 範圍取平均值
+    }
+
     document.getElementById('fileInput').addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
@@ -57,7 +68,7 @@
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             let raw = XLSX.utils.sheet_to_json(sheet);
 
-            // === 關鍵修復：自動向下填充 merged cells 的日期 ===
+            // 自動填充 merged cells 的日期
             let currentDate = '';
             raw.forEach(row => {
               if (row['日期'] && String(row['日期']).trim() !== '') {
@@ -67,20 +78,20 @@
               }
             });
 
-            trips = raw.filter(r => r['時間'] || r['地點']); // 過濾空行
+            trips = raw.filter(r => r['時間'] || r['地點']);
           } else {
             trips = parseCSV(ev.target.result);
           }
           localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
           renderAll();
         } catch(err) {
-          document.getElementById('timelineContainer').innerHTML = `<div class="error">讀取失敗，請確認檔案格式正確</div>`;
+          document.getElementById('timelineContainer').innerHTML = `<div class="error">讀取失敗，請確認檔案格式</div>`;
         }
       };
       reader.readAsArrayBuffer ? reader.readAsArrayBuffer(file) : reader.readAsText(file);
     });
 
-    function parseCSV(csv) { /* 保持原樣 */ 
+    function parseCSV(csv) { /* ... 同前（省略） */ 
       const lines = csv.trim().split('\n');
       const headers = lines[0].split(',').map(h => h.trim());
       return lines.slice(1).filter(l => l.trim()).map(line => {
@@ -109,13 +120,14 @@
 
       Object.keys(grouped).sort().forEach(date => {
         const dayTrips = grouped[date];
-        const dayTotal = dayTrips.reduce((sum, r) => sum + (parseFloat(r['$$'] || r['RM'] || 0)), 0);
+        const dayTotal = dayTrips.reduce((sum, r) => sum + extractCost(r['$$']), 0);
 
         let html = `<div class="day-header">${date} <span>小計 RM ${dayTotal.toFixed(0)}</span></div>`;
         html += `<div class="timeline">`;
 
         dayTrips.forEach(r => {
-          const cost = parseFloat(r['$$'] || r['RM'] || 0);
+          const costNum = extractCost(r['$$']);
+          const originalCost = r['$$'] || '—';
           html += `
             <div class="event">
               <div class="event-dot"></div>
@@ -124,7 +136,7 @@
                 <b>${r['地點'] || ''}</b><br>
                 <small>
                   營業時間：${r['營業時間'] || '—'}<br>
-                  費用：RM ${cost}<br>
+                  費用：${originalCost} （計算用 RM ${costNum.toFixed(0)}）<br>
                   交通：${r['交通'] || '—'}<br>
                   重點：${r['重點'] || ''}
                 </small>
@@ -137,13 +149,13 @@
     }
 
     function renderSummary() {
-      const total = trips.reduce((sum, r) => sum + (parseFloat(r['$$'] || r['RM'] || 0)), 0);
+      const total = trips.reduce((sum, r) => sum + extractCost(r['$$']), 0);
       const el = document.getElementById('totalSummary');
       el.innerHTML = `全行程總預估費用：RM ${total.toFixed(0)}`;
-      el.style.display = total > 0 ? 'block' : 'none';
+      el.style.display = 'block';
     }
 
-    function exportCSV() { /* 同前 */ 
+    function exportCSV() { /* ... 同前 */ 
       if (trips.length === 0) return alert('沒有資料');
       let csv = '日期,時間,地點,營業時間,$$,交通,重點\n';
       trips.forEach(r => {
