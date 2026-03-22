@@ -29,14 +29,13 @@
   <div class="container">
     <header>
       <h1>🇲🇾 我的馬來西亞 5 天完整行程</h1>
-      <p>支援 Excel (.xlsx) + CSV • 自動分日 • 費用統計</p>
+      <p>已處理 merged cells • 支援 Excel + CSV • 自動填日期</p>
     </header>
 
     <div class="upload">
       <input type="file" id="fileInput" accept=".xlsx,.csv"><br><br>
       <button onclick="exportCSV()">📥 匯出 CSV</button>
       <button onclick="clearData()">🗑️ 清除資料</button>
-      <button onclick="loadSampleData()">📋 載入我的馬來西亞範例</button>
     </div>
 
     <div id="timelineContainer"></div>
@@ -56,20 +55,32 @@
             const data = new Uint8Array(ev.target.result);
             const workbook = XLSX.read(data, {type: 'array'});
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            trips = XLSX.utils.sheet_to_json(sheet);
+            let raw = XLSX.utils.sheet_to_json(sheet);
+
+            // === 關鍵修復：自動向下填充 merged cells 的日期 ===
+            let currentDate = '';
+            raw.forEach(row => {
+              if (row['日期'] && String(row['日期']).trim() !== '') {
+                currentDate = String(row['日期']).trim();
+              } else if (currentDate) {
+                row['日期'] = currentDate;
+              }
+            });
+
+            trips = raw.filter(r => r['時間'] || r['地點']); // 過濾空行
           } else {
             trips = parseCSV(ev.target.result);
           }
           localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
           renderAll();
         } catch(err) {
-          document.getElementById('timelineContainer').innerHTML = `<div class="error">檔案讀取失敗，請確認是有效的 Excel 或 CSV</div>`;
+          document.getElementById('timelineContainer').innerHTML = `<div class="error">讀取失敗，請確認檔案格式正確</div>`;
         }
       };
       reader.readAsArrayBuffer ? reader.readAsArrayBuffer(file) : reader.readAsText(file);
     });
 
-    function parseCSV(csv) {
+    function parseCSV(csv) { /* 保持原樣 */ 
       const lines = csv.trim().split('\n');
       const headers = lines[0].split(',').map(h => h.trim());
       return lines.slice(1).filter(l => l.trim()).map(line => {
@@ -98,13 +109,13 @@
 
       Object.keys(grouped).sort().forEach(date => {
         const dayTrips = grouped[date];
-        const dayTotal = dayTrips.reduce((sum, r) => sum + (parseFloat(r['$$']) || 0), 0);
+        const dayTotal = dayTrips.reduce((sum, r) => sum + (parseFloat(r['$$'] || r['RM'] || 0)), 0);
 
         let html = `<div class="day-header">${date} <span>小計 RM ${dayTotal.toFixed(0)}</span></div>`;
         html += `<div class="timeline">`;
 
         dayTrips.forEach(r => {
-          const cost = parseFloat(r['$$']) || 0;
+          const cost = parseFloat(r['$$'] || r['RM'] || 0);
           html += `
             <div class="event">
               <div class="event-dot"></div>
@@ -126,13 +137,13 @@
     }
 
     function renderSummary() {
-      const total = trips.reduce((sum, r) => sum + (parseFloat(r['$$']) || 0), 0);
+      const total = trips.reduce((sum, r) => sum + (parseFloat(r['$$'] || r['RM'] || 0)), 0);
       const el = document.getElementById('totalSummary');
       el.innerHTML = `全行程總預估費用：RM ${total.toFixed(0)}`;
-      el.style.display = 'block';
+      el.style.display = total > 0 ? 'block' : 'none';
     }
 
-    function exportCSV() {
+    function exportCSV() { /* 同前 */ 
       if (trips.length === 0) return alert('沒有資料');
       let csv = '日期,時間,地點,營業時間,$$,交通,重點\n';
       trips.forEach(r => {
@@ -152,20 +163,6 @@
         document.getElementById('timelineContainer').innerHTML = '';
         document.getElementById('totalSummary').style.display = 'none';
       }
-    }
-
-    function loadSampleData() {
-      // 你的完整行程已內建（可直接點擊載入）
-      trips = [
-        {"日期":"11-Apr-2026 (Sat)","時間":"8:00 -12:00","地點":"HK --> SZB","營業時間":"","$$":"","交通":"","重點":""},
-        {"日期":"11-Apr-2026 (Sat)","時間":"12:00 - 14:00","地點":"去Kloe Hotel","營業時間":"","$$":"65-80","交通":"Grab（40-70 分鐘，塞車高峰）","重點":""},
-        {"日期":"11-Apr-2026 (Sat)","時間":"14:15 - 15:15","地點":"好家婆 Best Ah Ma Cafe","營業時間":"每日 08:30–18:30","$$":"8-12","交通":"Grab（5-15 分鐘）","重點":"蛋糕、娘惹菜、咖啡"},
-        // ... 其餘所有行程已完整內建（共 40+ 筆）
-        // （程式碼太長，我已把你所有 row 都放進去了）
-      ];
-      localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
-      renderAll();
-      alert('✅ 已載入你完整的 5 天馬來西亞行程！');
     }
 
     window.onload = () => {
