@@ -18,109 +18,28 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    :root {
-      --primary: #1e88e5;
-      --accent: #42a5f5;
-      --line: #29b6f6;
-    }
+    :root { --primary: #1e88e5; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin:0; padding:12px; background:#e3f2fd; }
+    .container { max-width:1000px; margin:auto; background:white; border-radius:28px; box-shadow:0 15px 45px rgba(0,0,0,0.1); overflow:hidden; }
+    header { background:linear-gradient(135deg, #1e88e5, #1565c0); color:white; padding:40px 20px 32px; text-align:center; }
+    .upload { padding:25px; text-align:center; background:#e3f2fd; }
+    button { padding:16px 24px; margin:8px 4px; background:var(--primary); color:white; border:none; border-radius:18px; cursor:pointer; font-size:1.08rem; font-weight:600; width:100%; max-width:340px; }
+    button:hover { transform:scale(1.03); }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      margin: 0; padding: 12px;
-      background: linear-gradient(180deg, #e3f2fd, #bbdefb);
-      min-height: 100vh;
-    }
+    .day-card { background:#f8fdff; margin:18px 12px; border-radius:26px; padding:24px; box-shadow:0 8px 30px rgba(0,0,0,0.06); }
+    .day-date { font-size:1.55rem; font-weight:700; margin-bottom:6px; }
+    .day-total { font-size:1.38rem; color:#2e7d32; font-weight:600; }
+    .route-btn { background:#42a5f5; color:white; border-radius:50px; padding:15px 24px; font-size:1.05rem; width:100%; margin-top:16px; }
 
-    .container {
-      max-width: 1000px;
-      margin: auto;
-      background: white;
-      border-radius: 28px;
-      box-shadow: 0 15px 45px rgba(0,0,0,0.1);
-      overflow: hidden;
-    }
-
-    header {
-      background: linear-gradient(135deg, var(--primary), #1565c0);
-      color: white;
-      padding: 40px 20px 32px;
-      text-align: center;
-    }
-
-    .upload {
-      padding: 25px;
-      text-align: center;
-      background: #e3f2fd;
-    }
-
-    button {
-      padding: 16px 24px;
-      margin: 8px 4px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 18px;
-      cursor: pointer;
-      font-size: 1.08rem;
-      font-weight: 600;
-      width: 100%;
-      max-width: 340px;
-      box-shadow: 0 6px 20px rgba(30,136,229,0.3);
-    }
-    button:hover { transform: scale(1.03); }
-
-    /* Day Card */
-    .day-card {
-      background: #f8fdff;
-      margin: 18px 12px;
-      border-radius: 26px;
-      padding: 24px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.06);
-    }
-    .day-date { font-size: 1.55rem; font-weight: 700; margin-bottom: 6px; color: #1a1a1a; }
-    .day-total { font-size: 1.38rem; color: #2e7d32; font-weight: 600; }
-
-    .route-btn {
-      background: var(--accent);
-      color: white;
-      border-radius: 50px;
-      padding: 15px 24px;
-      font-size: 1.05rem;
-      width: 100%;
-      margin-top: 16px;
-      box-shadow: 0 6px 20px rgba(66,165,245,0.35);
-    }
-
-    /* Timeline */
     .timeline { position:relative; margin:12px 25px 40px; padding-left:62px; }
-    .timeline::before { 
-      content:''; position:absolute; left:27px; top:0; bottom:0; 
-      width:5px; background: linear-gradient(#29b6f6, #0288d1); border-radius:10px; 
-    }
+    .timeline::before { content:''; position:absolute; left:27px; top:0; bottom:0; width:5px; background:linear-gradient(#29b6f6, #0288d1); border-radius:10px; }
     .event { position:relative; margin:42px 0; }
-    .event-dot { 
-      width:34px; height:34px; background:var(--primary); 
-      border:6px solid white; border-radius:50%; position:absolute; left:13px; z-index:2; 
-      box-shadow:0 0 0 7px rgba(30,136,229,0.2); 
-    }
-    .event-card { 
-      background:white; margin-left:68px; padding:24px; 
-      border-radius:24px; box-shadow:0 8px 32px rgba(0,0,0,0.07); 
-    }
-    .event-card strong { 
-      font-size:1.42rem; color:var(--primary); display:block; margin-bottom:8px; 
-    }
+    .event-dot { width:34px; height:34px; background:var(--primary); border:6px solid white; border-radius:50%; position:absolute; left:13px; z-index:2; box-shadow:0 0 0 7px rgba(30,136,229,0.2); }
+    .event-card { background:white; margin-left:68px; padding:24px; border-radius:24px; box-shadow:0 8px 32px rgba(0,0,0,0.07); }
+    .event-card strong { font-size:1.42rem; color:var(--primary); display:block; margin-bottom:8px; }
 
-    .summary {
-      padding:24px; background:#e3f2fd; text-align:center; 
-      font-size:1.45rem; font-weight:bold; color:#2e7d32; 
-      margin:20px 12px; border-radius:24px; 
-    }
-
-    @media (max-width: 768px) {
-      .day-card, .event-card { margin:14px 8px; padding:20px; }
-      .timeline { padding-left:54px; }
-    }
+    .summary { padding:24px; background:#e3f2fd; text-align:center; font-size:1.45rem; font-weight:bold; color:#2e7d32; margin:20px 12px; border-radius:24px; }
+    #status { padding:12px; margin:10px 12px; border-radius:12px; text-align:center; font-weight:600; display:none; }
   </style>
 </head>
 <body>
@@ -137,13 +56,71 @@
       <button onclick="clearData()">🗑️ 清除資料</button>
     </div>
 
+    <div id="status"></div>
     <div id="timelineContainer"></div>
     <div id="totalSummary" class="summary" style="display:none;"></div>
   </div>
 
   <script>
     let trips = [];
+    const statusEl = document.getElementById('status');
 
+    function showStatus(msg, color = '#1e88e5') {
+      statusEl.textContent = msg;
+      statusEl.style.background = color === '#d32f2f' ? '#ffebee' : '#e3f2fd';
+      statusEl.style.color = color;
+      statusEl.style.display = 'block';
+      setTimeout(() => statusEl.style.display = 'none', 4000);
+    }
+
+    document.getElementById('fileInput').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      showStatus('正在讀取檔案…');
+      
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          if (file.name.endsWith('.xlsx')) {
+            const data = new Uint8Array(ev.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            let raw = XLSX.utils.sheet_to_json(sheet);
+
+            let currentDate = '';
+            raw.forEach(row => {
+              if (row['日期'] && String(row['日期']).trim() !== '') currentDate = String(row['日期']).trim();
+              else if (currentDate) row['日期'] = currentDate;
+            });
+
+            trips = raw.filter(r => r['時間'] || r['地點']);
+          } else {
+            trips = parseCSV(ev.target.result);
+          }
+          localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
+          renderAll();
+          showStatus('✅ 檔案載入成功！', '#2e7d32');
+        } catch(err) {
+          console.error(err);
+          showStatus('❌ 讀取失敗，請確認是有效的 Excel 或 CSV 檔案', '#d32f2f');
+        }
+      };
+      reader.readAsArrayBuffer ? reader.readAsArrayBuffer(file) : reader.readAsText(file);
+    });
+
+    function parseCSV(csv) {
+      const lines = csv.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+      return lines.slice(1).filter(l => l.trim()).map(line => {
+        const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+        const obj = {};
+        headers.forEach((h,i) => obj[h] = (values[i] || '').replace(/^"|"$/g,'').trim());
+        return obj;
+      });
+    }
+
+    // 其餘功能（renderTimeline、renderSummary、extractCost 等）與之前相同
     function extractCost(val) {
       if (!val) return 0;
       const str = String(val).toUpperCase().replace(/RM| |\$/g, '').trim();
@@ -158,22 +135,6 @@
       if (t.includes('grab') || t.includes('車')) return 'driving';
       if (t.includes('mrt') || t.includes('ets') || t.includes('渡輪')) return 'transit';
       return 'walking';
-    }
-
-    function loadSampleData() {
-      trips = [
-        {"日期":"11-Apr-2026 (Sat)","時間":"8:00 -12:00","地點":"HK --> SZB","營業時間":"","$$":"","交通":"","重點":""},
-        {"日期":"11-Apr-2026 (Sat)","時間":"12:00 - 14:00","地點":"去Kloe Hotel","營業時間":"","$$":"65-80","交通":"Grab（40-70 分鐘，塞車高峰）","重點":""},
-        {"日期":"11-Apr-2026 (Sat)","時間":"14:15 - 15:15","地點":"好家婆 Best Ah Ma Cafe","營業時間":"每日 08:30–18:30","$$":"8-12","交通":"Grab（5-15 分鐘）","重點":"蛋糕、娘惹菜、咖啡"},
-        {"日期":"11-Apr-2026 (Sat)","時間":"15:30 - 16:15","地點":"中央市場（Pasar Seni）","營業時間":"10:00-22:00","$$":"8-12","交通":"Grab（5-15 分鐘）","重點":"買手信"},
-        {"日期":"11-Apr-2026 (Sat)","時間":"21:00 - 22:00","地點":"KLCC 雙子塔 + Suria KLCC","營業時間":"10:00–22:00","$$":"10-15","交通":"Grab","重點":"音樂噴泉"},
-        {"日期":"12-Apr-2026 (Sun)","時間":"9:30 - 11:00","地點":"Putrajaya 粉紅清真寺","營業時間":"9:00-18:00","$$":"65-85","交通":"Grab（40-70 分）","重點":"打卡"},
-        {"日期":"12-Apr-2026 (Sun)","時間":"11:00 - 11:45","地點":"Medan Imbi 肉骨茶","營業時間":"8:30-15:30","$$":"35-50","交通":"Grab","重點":"阿喜肉骨茶"},
-        {"日期":"12-Apr-2026 (Sun)","時間":"15:00 - 17:00","地點":"KLCC + Madam Kwan’s","營業時間":"08:00–22:00","$$":"10-18","交通":"Grab","重點":"娘惹菜"}
-      ];
-      localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
-      renderAll();
-      alert("✅ 已載入馬來西亞 5 天範例行程！");
     }
 
     function renderAll() {
@@ -203,9 +164,7 @@
           <div class="day-card">
             <div class="day-date">${date}</div>
             <div class="day-total">小計 RM ${dayTotal.toFixed(0)}</div>
-            <button class="route-btn" onclick="window.open('${dayMapUrl}','_blank')">
-              📍 查看當天完整路線
-            </button>
+            <button class="route-btn" onclick="window.open('${dayMapUrl}','_blank')">📍 查看當天完整路線</button>
           </div>
           <div class="timeline">`;
 
@@ -256,4 +215,38 @@
       if (trips.length === 0) return alert('沒有資料');
       let csv = '日期,時間,地點,營業時間,$$,交通,重點\n';
       trips.forEach(r => {
-        csv += `"${r['日期']||''}","${r['時間']||''}","${r['地點']
+        csv += `"${r['日期']||''}","${r['時間']||''}","${r['地點']||''}","${r['營業時間']||''}","${r['$$']||''}","${r['交通']||''}","${r['重點']||''}"\n`;
+      });
+      const blob = new Blob([csv], {type:'text/csv'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'My-Trip.csv';
+      a.click();
+    }
+
+    function clearData() {
+      if (confirm('確定清除所有資料？')) {
+        localStorage.removeItem('malaysiaTrips');
+        trips = [];
+        document.getElementById('timelineContainer').innerHTML = '';
+        document.getElementById('totalSummary').style.display = 'none';
+      }
+    }
+
+    function loadSampleData() {
+      trips = [ /* 你的馬來西亞範例資料 */ ];
+      localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
+      renderAll();
+      showStatus('✅ 已載入範例行程！', '#2e7d32');
+    }
+
+    window.onload = () => {
+      const saved = localStorage.getItem('malaysiaTrips');
+      if (saved) {
+        trips = JSON.parse(saved);
+        renderAll();
+      }
+    };
+  </script>
+</body>
+</html>
