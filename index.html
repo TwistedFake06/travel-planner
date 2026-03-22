@@ -6,24 +6,24 @@
   <title>🇲🇾 我的馬來西亞 5 天行程</title>
   <style>
     :root { --primary: #d32f2f; }
-    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 15px; background: #f5f5f5; line-height: 1.5; }
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 15px; background: #f5f5f5; line-height: 1.6; }
     .container { max-width: 960px; margin: auto; background: white; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); overflow: hidden; }
     header { background: var(--primary); color: white; padding: 20px; text-align: center; }
     .upload-area { padding: 20px; text-align: center; background: #fff3e0; }
     button { padding: 10px 18px; margin: 5px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; }
     button:hover { background: #b71c1c; }
-    .day-header { background: #e8f5e9; padding: 12px 20px; margin: 25px 20px 10px; font-size: 1.4rem; font-weight: bold; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .day-header { background: #e8f5e9; padding: 12px 20px; margin: 25px 20px 10px; font-size: 1.35rem; font-weight: bold; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
     .timeline { position: relative; max-width: 900px; margin: 20px auto; padding: 0 20px; }
     .timeline::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 6px; background: #ff9800; transform: translateX(-50%); }
     .event { position: relative; margin: 40px 0; display: flex; align-items: center; }
     .event:nth-child(odd) { flex-direction: row; }
     .event:nth-child(even) { flex-direction: row-reverse; }
     .event-dot { width: 24px; height: 24px; background: var(--primary); border: 4px solid white; border-radius: 50%; position: absolute; left: 50%; transform: translateX(-50%); z-index: 2; box-shadow: 0 0 0 5px #ffebee; }
-    .event-card { background: white; border-radius: 12px; padding: 18px; width: 45%; box-shadow: 0 4px 15px rgba(0,0,0,0.08); position: relative; }
+    .event-card { background: white; border-radius: 12px; padding: 18px; width: 45%; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
     .event-card strong { font-size: 1.2rem; color: #d32f2f; }
-    .event-card small { display: block; margin-top: 8px; color: #555; }
     .nav-btn { margin-top: 10px; background: #4caf50; font-size: 0.95rem; }
-    .summary { padding: 20px; background: #f0f4f8; text-align: center; font-size: 1.3rem; font-weight: bold; color: #2e7d32; }
+    .summary { padding: 20px; background: #f0f4f8; text-align: center; font-size: 1.3rem; font-weight: bold; color: #2e7d32; margin: 20px; border-radius: 12px; }
+    .error { color: #d32f2f; background: #ffebee; padding: 15px; border-radius: 8px; margin: 20px; }
     @media (max-width: 768px) {
       .timeline::before { left: 30px; }
       .event { flex-direction: column !important; align-items: flex-start; }
@@ -36,32 +36,35 @@
   <div class="container">
     <header>
       <h1>🇲🇾 我的馬來西亞 5 天詳細行程</h1>
-      <p>完全離線時間軸 • 自動費用統計 • 點擊導航</p>
+      <p>離線時間軸 • 自動費用統計 • Google 導航</p>
     </header>
 
     <div class="upload-area">
-      <input type="file" id="csvFile" accept=".csv" style="margin-bottom:10px;">
-      <button onclick="exportCSV()">匯出 CSV</button>
-      <button onclick="clearData()">清除資料</button>
+      <input type="file" id="csvFile" accept=".csv"><br><br>
+      <button onclick="exportCSV()">📥 匯出 CSV</button>
+      <button onclick="clearData()">🗑️ 清除資料</button>
+      <button onclick="downloadSampleCSV()">📋 下載範例 CSV</button>
     </div>
 
     <div id="timelineContainer"></div>
-
     <div id="totalSummary" class="summary" style="display:none;"></div>
   </div>
 
   <script>
     let trips = [];
 
-    const csvInput = document.getElementById('csvFile');
-    csvInput.addEventListener('change', e => {
+    document.getElementById('csvFile').addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = ev => {
-        trips = parseCSV(ev.target.result);
-        saveToLocalStorage();
-        renderAll();
+        try {
+          trips = parseCSV(ev.target.result);
+          saveToLocalStorage();
+          renderAll();
+        } catch (err) {
+          document.getElementById('timelineContainer').innerHTML = `<div class="error">CSV 格式錯誤，請檢查欄位是否包含 Day, Start_Time, End_Time 等</div>`;
+        }
       };
       reader.readAsText(file);
     });
@@ -69,12 +72,17 @@
     function parseCSV(csv) {
       const lines = csv.trim().split('\n');
       const headers = lines[0].split(',').map(h => h.trim());
-      return lines.slice(1).filter(l => l.trim()).map(line => {
-        const values = line.split(',');
-        const obj = {};
-        headers.forEach((h, i) => obj[h] = values[i] ? values[i].trim() : '');
-        return obj;
-      });
+      return lines.slice(1)
+        .filter(l => l.trim())
+        .map(line => {
+          const values = line.split(',');
+          const obj = {};
+          headers.forEach((h, i) => {
+            obj[h] = (values[i] || '').trim();
+          });
+          return obj;
+        })
+        .filter(t => t.Day && t.Start_Time); // 過濾無效資料
     }
 
     function renderAll() {
@@ -86,58 +94,62 @@
       const container = document.getElementById('timelineContainer');
       container.innerHTML = '';
 
-      const days = [...new Set(trips.map(t => t.Day))].sort((a,b)=>a-b);
+      // 安全排序：先確保 Day 是數字
+      const days = [...new Set(trips.map(t => String(t.Day).trim()))].sort((a,b) => Number(a) - Number(b));
 
       days.forEach(day => {
-        const dayTrips = trips.filter(t => t.Day == day)
-          .sort((a,b) => a.Start_Time.localeCompare(b.Start_Time));
+        const dayTrips = trips.filter(t => String(t.Day).trim() === day)
+          .sort((a, b) => (a.Start_Time || '').localeCompare(b.Start_Time || ''));
 
-        let dayHTML = `<div class="day-header">Day ${day} <span style="font-size:1rem;font-weight:normal;">小計 RM ${dayTrips.reduce((sum,t)=>sum+(parseFloat(t.Est_Cost_RM)||0),0).toFixed(0)}</span></div>`;
-        dayHTML += `<div class="timeline">`;
+        const dayTotal = dayTrips.reduce((sum, t) => sum + (parseFloat(t.Est_Cost_RM) || 0), 0);
+
+        let html = `<div class="day-header">Day ${day} <span style="font-size:1rem;">小計 RM ${dayTotal.toFixed(0)}</span></div>`;
+        html += `<div class="timeline">`;
 
         let prevLat = null, prevLng = null;
 
-        dayTrips.forEach((t, i) => {
+        dayTrips.forEach(t => {
           const cost = parseFloat(t.Est_Cost_RM) || 0;
           const lat = parseFloat(t.Lat);
           const lng = parseFloat(t.Lng);
-          let navHTML = '';
 
-          if (lat && lng) {
-            const destination = `${lat},${lng}`;
+          let navHTML = '';
+          if (!isNaN(lat) && !isNaN(lng)) {
+            const dest = `${lat},${lng}`;
             const origin = prevLat && prevLng ? `${prevLat},${prevLng}` : '';
-            const mode = (t.Transport || '').toLowerCase().includes('grab') || (t.Transport || '').toLowerCase().includes('car') ? 'driving' : 'walking';
+            const mode = (t.Transport || '').toLowerCase().includes('grab') ? 'driving' : 'walking';
             const url = origin 
-              ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=${mode}`
-              : `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=${mode}`;
+              ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=${mode}`
+              : `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=${mode}`;
             navHTML = `<button class="nav-btn" onclick="window.open('${url}','_blank')">🗺️ Google 導航</button>`;
           }
           prevLat = lat; prevLng = lng;
 
-          dayHTML += `
+          html += `
             <div class="event">
               <div class="event-dot"></div>
               <div class="event-card">
                 <strong>${t.Start_Time} - ${t.End_Time}</strong><br>
-                ${t.Activity || t.Location}<br>
+                ${t.Activity || t.Location || '未命名活動'}<br>
                 <small>交通：${t.Transport || '—'}　|　費用：RM ${cost}　|　${t.Notes || ''}</small>
                 ${navHTML}
               </div>
             </div>`;
         });
-        dayHTML += `</div>`;
-        container.innerHTML += dayHTML;
+        html += `</div>`;
+        container.innerHTML += html;
       });
     }
 
     function renderTotalSummary() {
-      if (trips.length === 0) {
-        document.getElementById('totalSummary').style.display = 'none';
-        return;
+      const total = trips.reduce((sum, t) => sum + (parseFloat(t.Est_Cost_RM) || 0), 0);
+      const summaryEl = document.getElementById('totalSummary');
+      if (total > 0) {
+        summaryEl.innerHTML = `全行程總預估費用：RM ${total.toFixed(0)}`;
+        summaryEl.style.display = 'block';
+      } else {
+        summaryEl.style.display = 'none';
       }
-      const total = trips.reduce((sum, t) => sum + (parseFloat(t.Est_Cost_RM) || 0), 0).toFixed(0);
-      document.getElementById('totalSummary').innerHTML = `全行程總預估費用：RM ${total}`;
-      document.getElementById('totalSummary').style.display = 'block';
     }
 
     function saveToLocalStorage() {
@@ -153,7 +165,7 @@
     }
 
     function exportCSV() {
-      if (trips.length === 0) return alert('沒有資料');
+      if (trips.length === 0) return alert('沒有資料可匯出');
       let csv = 'Day,Start_Time,End_Time,Activity,Location,Transport,Est_Duration_min,Est_Cost_RM,Notes,Lat,Lng\n';
       trips.forEach(t => {
         csv += `${t.Day||''},${t.Start_Time||''},${t.End_Time||''},${t.Activity||''},${t.Location||''},${t.Transport||''},${t.Est_Duration_min||''},${t.Est_Cost_RM||''},${t.Notes||''},${t.Lat||''},${t.Lng||''}\n`;
@@ -166,7 +178,7 @@
     }
 
     function clearData() {
-      if (confirm('確定清除所有資料？')) {
+      if (confirm('確定要清除所有資料嗎？')) {
         localStorage.removeItem('malaysiaTrips');
         trips = [];
         document.getElementById('timelineContainer').innerHTML = '';
@@ -174,6 +186,23 @@
       }
     }
 
+    function downloadSampleCSV() {
+      const sample = `Day,Start_Time,End_Time,Activity,Location,Transport,Est_Duration_min,Est_Cost_RM,Notes,Lat,Lng
+1,12:00,14:00,Grab 到酒店,Kloe Hotel,Grab,50,75,,3.1466,101.7103
+1,14:15,15:15,好家婆 Best Ah Ma Cafe,Best Ah Ma Cafe,Grab,10,10,,3.1480,101.7120
+1,15:30,16:15,中央市場 Pasar Seni,Central Market,Grab,10,10,逛工藝品,3.1460,101.6960
+1,21:00,22:00,KLCC 雙子塔 + Suria KLCC,KLCC Park,Grab,20,12,打卡交響樂湖,3.1580,101.7115
+2,9:30,11:00,Putrajaya 粉紅清真寺,Putra Mosque,Grab,60,75,,2.9500,101.6900
+2,19:05,21:39,KTM ETS 到怡保,KL Sentral → Ipoh,ETS,154,48,Gold Class,4.5970,101.0900`;
+
+      const blob = new Blob([sample], {type: 'text/csv'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'malaysia-5days-sample.csv';
+      a.click();
+    }
+
+    // 頁面載入自動恢復
     window.onload = loadFromLocalStorage;
   </script>
 </body>
