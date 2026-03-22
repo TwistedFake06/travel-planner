@@ -125,6 +125,15 @@
       color: #2e7d32;
       font-size: 1.05rem;
     }
+    .add-event-btn {
+      background: #66bb6a;
+      color: white;
+      border-radius: 50px;
+      padding: 10px 20px;
+      font-size: 0.95rem;
+      margin: 0 16px 20px;
+      width: calc(100% - 32px);
+    }
 
     .event {
       display: flex;
@@ -179,6 +188,16 @@
       border-radius: 20px;
       padding: 18px 20px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      position: relative;
+    }
+    .edit-icon {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #999;
+      z-index: 2;
     }
     .event-card h3 {
       margin: 0 0 6px;
@@ -210,23 +229,53 @@
       width: 100%;
     }
 
-    /* Summary */
-    .summary {
+    /* Modal */
+    .modal {
+      display: none;
       position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      max-width: 480px;
-      width: 100%;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
       background: white;
-      padding: 18px;
-      text-align: center;
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: #2e7d32;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-      z-index: 200;
-      border-radius: 20px 20px 0 0;
+      width: 92%;
+      max-width: 420px;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    .modal h2 {
+      margin: 0 0 20px;
+      font-size: 1.35rem;
+      color: var(--primary);
+    }
+    .modal label {
+      display: block;
+      margin: 16px 0 6px;
+      font-size: 0.95rem;
+      color: #555;
+    }
+    .modal input, .modal textarea, .modal select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      font-size: 1rem;
+    }
+    .modal-buttons {
+      margin-top: 28px;
+      display: flex;
+      gap: 12px;
+    }
+    .modal-buttons button {
+      flex: 1;
+      padding: 14px;
+    }
+    .delete-btn {
+      background: #f44336 !important;
     }
 
     a.link {
@@ -260,15 +309,46 @@
 
     <!-- Timeline -->
     <div id="timelineContainer" class="timeline-container"></div>
+  </div>
 
-    <!-- 總結 -->
-    <div id="totalSummary" class="summary" style="display:none;"></div>
+  <!-- 編輯 Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h2>✏️ 編輯行程</h2>
+      
+      <label>日期</label>
+      <input type="text" id="edit-date" placeholder="2026/04/05 (Day 1)">
+
+      <label>時間</label>
+      <input type="text" id="edit-time" placeholder="09:30">
+
+      <label>地點</label>
+      <input type="text" id="edit-location" placeholder="吉隆坡國際機場">
+
+      <label>營業時間</label>
+      <input type="text" id="edit-hours" placeholder="全天">
+
+      <label>費用 ($$)</label>
+      <input type="text" id="edit-cost" placeholder="RM 0">
+
+      <label>交通方式</label>
+      <input type="text" id="edit-transport" placeholder="Grab">
+
+      <label>重點 / 備註</label>
+      <textarea id="edit-note" rows="3" placeholder="重點描述或連結"></textarea>
+
+      <div class="modal-buttons">
+        <button onclick="hideModal()">取消</button>
+        <button onclick="deleteCurrentEvent()" class="delete-btn">🗑️ 刪除</button>
+        <button onclick="saveEdit()" style="background:var(--primary);">💾 儲存</button>
+      </div>
+    </div>
   </div>
 
   <script>
     let trips = [];
+    let currentEditIndex = -1;
 
-    // 自動把 Excel 時間分數 (0.25) 轉成正常時間 (06:00)
     function formatTime(val) {
       if (!val) return '';
       if (typeof val === 'number') {
@@ -279,7 +359,6 @@
       return String(val).trim();
     }
 
-    // 重點欄位如果有超長網址 → 自動轉成可點擊連結
     function makeLink(text) {
       if (!text) return '';
       const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -304,7 +383,7 @@
       return '🚶';
     }
 
-    // 檔案上傳
+    // ==================== 檔案上傳 ====================
     document.getElementById('fileInput').addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
@@ -345,10 +424,55 @@
       });
     }
 
+    // ==================== Modal 控制 ====================
+    function showEditModal(index) {
+      currentEditIndex = index;
+      const item = trips[index];
+      document.getElementById('edit-date').value = item['日期'] || '';
+      document.getElementById('edit-time').value = item['時間'] || '';
+      document.getElementById('edit-location').value = item['地點'] || '';
+      document.getElementById('edit-hours').value = item['營業時間'] || '';
+      document.getElementById('edit-cost').value = item['$$'] || '';
+      document.getElementById('edit-transport').value = item['交通'] || '';
+      document.getElementById('edit-note').value = item['重點'] || '';
+      document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function hideModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    function saveEdit() {
+      if (currentEditIndex === -1) return;
+      trips[currentEditIndex] = {
+        ...trips[currentEditIndex],
+        '日期': document.getElementById('edit-date').value,
+        '時間': document.getElementById('edit-time').value,
+        '地點': document.getElementById('edit-location').value,
+        '營業時間': document.getElementById('edit-hours').value,
+        '$$': document.getElementById('edit-cost').value,
+        '交通': document.getElementById('edit-transport').value,
+        '重點': document.getElementById('edit-note').value
+      };
+      localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
+      hideModal();
+      renderAll();
+    }
+
+    function deleteCurrentEvent() {
+      if (currentEditIndex === -1) return;
+      if (confirm('確定要刪除這個行程嗎？')) {
+        trips.splice(currentEditIndex, 1);
+        localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
+        hideModal();
+        renderAll();
+      }
+    }
+
+    // ==================== 渲染 ====================
     function renderAll() {
       renderDayTabs();
       renderTimeline();
-      renderSummary();
     }
 
     function renderDayTabs() {
@@ -388,6 +512,8 @@
         grouped[date].push(row);
       });
 
+      let globalIdx = 0;
+
       Object.keys(grouped).sort().forEach(date => {
         const dayTrips = grouped[date];
         const dayTotal = dayTrips.reduce((sum, r) => sum + extractCost(r['$$']), 0);
@@ -398,25 +524,24 @@
             <div class="day-header">
               ${date}
               <span class="day-total">小計 RM ${dayTotal.toFixed(0)}</span>
-            </div>`;
+            </div>
+            <button class="add-event-btn" onclick="addNewEvent('${date}')">＋ 新增此天活動</button>`;
 
-        let prevLoc = '';
-        dayTrips.forEach((r, i) => {
+        dayTrips.forEach(r => {
           const costNum = extractCost(r['$$']);
           const currentLoc = r['地點'] || '';
           const modeIcon = getTransportMode(r['交通']);
           const encodedCurrent = encodeURIComponent(currentLoc);
-          const mapUrl = prevLoc 
-            ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(prevLoc)}&destination=${encodedCurrent}&travelmode=driving`
-            : `https://www.google.com/maps/search/?api=1&query=${encodedCurrent}`;
+          const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedCurrent}`;
 
           html += `
             <div class="event">
               <div class="time-dot">
                 <div class="time">${formatTime(r['時間'])}</div>
-                <div class="dot">${i+1}</div>
+                <div class="dot">${globalIdx + 1}</div>
               </div>
               <div class="event-card">
+                <span onclick="showEditModal(${globalIdx})" class="edit-icon">✏️</span>
                 <h3>${currentLoc}</h3>
                 <small>
                   營業時間：${r['營業時間'] || '—'}<br>
@@ -429,7 +554,7 @@
                 <button class="nav-btn" onclick="window.open('${mapUrl}','_blank')">🗺️ 導航到此地點</button>
               </div>
             </div>`;
-          prevLoc = currentLoc;
+          globalIdx++;
         });
 
         html += `</div>`;
@@ -437,14 +562,24 @@
       });
     }
 
-    function renderSummary() {
-      const total = trips.reduce((sum, r) => sum + extractCost(r['$$']), 0);
-      const days = new Set(trips.map(r => r['日期'])).size;
-      const el = document.getElementById('totalSummary');
-      el.innerHTML = `全行程總預估費用：RM ${total.toFixed(0)}　｜　共 ${days} 天`;
-      el.style.display = 'block';
+    // ==================== 新增活動 ====================
+    function addNewEvent(defaultDate) {
+      const newEvent = {
+        '日期': defaultDate,
+        '時間': '10:00',
+        '地點': '新地點',
+        '營業時間': '全天',
+        '$$': 'RM 0',
+        '交通': 'Walking',
+        '重點': ''
+      };
+      trips.push(newEvent);
+      localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
+      renderAll();
+      showEditModal(trips.length - 1);
     }
 
+    // ==================== 其他功能 ====================
     function exportCSV() {
       if (trips.length === 0) return alert('沒有資料');
       let csv = '日期,時間,地點,營業時間,$$,交通,重點\n';
@@ -462,9 +597,7 @@
       if (confirm('確定清除所有資料？')) {
         localStorage.removeItem('malaysiaTrips');
         trips = [];
-        document.getElementById('timelineContainer').innerHTML = '';
-        document.getElementById('totalSummary').style.display = 'none';
-        document.getElementById('dayTabs').innerHTML = '';
+        renderAll();
       }
     }
 
@@ -477,15 +610,15 @@
       ];
       localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
       renderAll();
-      alert("✅ 已載入馬來西亞 5 天經典範例！");
+      alert("✅ 已載入馬來西亞 5 天經典範例！\n\n每張卡片右上角 ✏️ 可編輯喔～");
     }
 
     window.onload = () => {
       const saved = localStorage.getItem('malaysiaTrips');
       if (saved) {
         trips = JSON.parse(saved);
-        renderAll();
       }
+      renderAll();
     };
   </script>
 </body>
