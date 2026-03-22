@@ -19,10 +19,12 @@
       background: #f0f4f8;
       color: #333;
       height: 100vh;
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden; /* 讓整體頁面不亂滾 */
     }
 
-    /* Header - 藍色風格 */
+    /* Header */
     .app-header {
       background: linear-gradient(135deg, #1e88e5, #1565c0);
       color: white;
@@ -30,9 +32,6 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     .app-header h1 {
@@ -41,13 +40,14 @@
       font-weight: 600;
     }
 
-    /* 上傳區塊 - 大藍色按鈕 */
+    /* 上傳按鈕區 */
     .upload {
       padding: 16px;
       background: white;
       display: flex;
       flex-direction: column;
       gap: 10px;
+      border-bottom: 1px solid #eee;
     }
     button {
       border: none;
@@ -57,10 +57,6 @@
       font-weight: 600;
       color: white;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
     }
     .btn-primary { background: linear-gradient(135deg, #1e88e5, #42a5f5); }
     .btn-success { background: linear-gradient(135deg, #66bb6a, #43a047); }
@@ -90,13 +86,15 @@
       color: white;
     }
 
-    /* Timeline */
+    /* 關鍵修正：讓 Timeline 可以上下滑動 */
     .timeline-container {
       flex: 1;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch; /* iOS 順暢滑動 */
       padding: 12px 16px 80px;
       background: #f8fbff;
     }
+
     .day-section { margin-bottom: 32px; }
     .day-header {
       display: flex;
@@ -137,11 +135,7 @@
     }
     .event:last-child::before { display: none; }
 
-    .time-dot {
-      width: 42px;
-      text-align: center;
-      flex-shrink: 0;
-    }
+    .time-dot { width: 42px; text-align: center; flex-shrink: 0; }
     .time { font-size: 0.95rem; font-weight: 700; color: #666; }
     .dot {
       width: 38px; height: 38px;
@@ -314,7 +308,6 @@
       return '🚶';
     }
 
-    // ====================== 檔案匯入（強化 Excel 支援） ======================
     document.getElementById('fileInput').addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
@@ -400,7 +393,6 @@
       a.click();
     }
 
-    // ====================== 渲染 & 編輯功能 ======================
     function renderAll() {
       renderDayTabs();
       renderTimeline();
