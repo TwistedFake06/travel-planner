@@ -39,7 +39,7 @@
       overflow: hidden;
     }
 
-    /* ===== 粉紅 App 風格 Header ===== */
+    /* App Header */
     .app-header {
       background: linear-gradient(135deg, #e91e63, #ff4081);
       color: white;
@@ -56,41 +56,29 @@
       font-weight: 600;
       margin: 0;
     }
-    .header-icons {
-      display: flex;
-      gap: 16px;
-      font-size: 1.4rem;
-    }
 
-    /* ===== Hero 大圖 ===== */
-    .hero {
-      height: 220px;
-      background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('https://picsum.photos/id/1015/1200/600') center/cover no-repeat;
-      display: flex;
-      align-items: flex-end;
-      padding: 20px;
+    /* Upload */
+    .upload {
+      padding: 16px;
+      background: #fff;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    button {
+      background: var(--primary);
       color: white;
-      position: relative;
-    }
-    .hero-info {
-      background: rgba(255,255,255,0.95);
-      color: #333;
-      border-radius: 16px;
-      padding: 14px 20px;
+      border: none;
+      padding: 14px 24px;
+      margin: 6px 4px;
+      border-radius: 50px;
+      font-size: 1.02rem;
+      font-weight: 600;
+      cursor: pointer;
       width: 100%;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-    .hero-title {
-      font-size: 1.35rem;
-      font-weight: 700;
-      margin: 0 0 4px;
-    }
-    .hero-date {
-      font-size: 0.95rem;
-      opacity: 0.85;
+      max-width: 320px;
     }
 
-    /* ===== Day Tabs ===== */
+    /* Day Tabs */
     .day-tabs {
       display: flex;
       overflow-x: auto;
@@ -116,33 +104,12 @@
       box-shadow: 0 4px 12px rgba(233,30,99,0.3);
     }
 
-    /* ===== Upload 區塊 ===== */
-    .upload {
-      padding: 16px;
-      background: #fff;
-      text-align: center;
-      border-bottom: 1px solid #eee;
-    }
-    button {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 14px 24px;
-      margin: 6px 4px;
-      border-radius: 50px;
-      font-size: 1.02rem;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      max-width: 320px;
-    }
-
-    /* ===== Timeline 全新 App 風格 ===== */
+    /* Timeline */
     .timeline-container {
       padding: 0 16px 80px;
     }
     .day-section {
-      margin-bottom: 32px;
+      margin-bottom: 40px;
     }
     .day-header {
       display: flex;
@@ -188,6 +155,7 @@
       font-weight: 700;
       color: #666;
       display: block;
+      min-height: 24px;
     }
     .dot {
       width: 38px;
@@ -211,7 +179,6 @@
       border-radius: 20px;
       padding: 18px 20px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-      position: relative;
     }
     .event-card h3 {
       margin: 0 0 6px;
@@ -233,8 +200,6 @@
       border-radius: 30px;
       font-size: 0.9rem;
     }
-
-    /* Nav 按鈕 */
     .nav-btn {
       margin-top: 14px;
       background: #66bb6a;
@@ -264,33 +229,23 @@
       border-radius: 20px 20px 0 0;
     }
 
-    @media (max-width: 480px) {
-      .container { box-shadow: none; }
+    a.link {
+      color: #1e88e5;
+      text-decoration: underline;
+      word-break: break-all;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- 粉紅 App Header -->
+    <!-- App Header -->
     <div class="app-header">
       <div onclick="history.back()" style="cursor:pointer;">←</div>
       <h1>我的旅行行程</h1>
-      <div class="header-icons">
-        <span onclick="alert('幫助說明即將推出！')">❔</span>
-        <span onclick="alert('編輯模式開發中')">✏️</span>
-        <span onclick="alert('分享功能開發中')">🔗</span>
-      </div>
+      <div style="font-size:1.4rem;">❔ ✏️ 🔗</div>
     </div>
 
-    <!-- Hero 大圖 -->
-    <div class="hero">
-      <div class="hero-info">
-        <div class="hero-title">馬來西亞 5 天經典之旅</div>
-        <div class="hero-date">2026/04/05 — 2026/04/09　｜　吉隆坡・雲頂・馬六甲</div>
-      </div>
-    </div>
-
-    <!-- 上傳區塊（保留功能） -->
+    <!-- Upload -->
     <div class="upload">
       <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
       <button onclick="document.getElementById('fileInput').click()">📤 上傳 Excel / CSV</button>
@@ -306,12 +261,32 @@
     <!-- Timeline -->
     <div id="timelineContainer" class="timeline-container"></div>
 
-    <!-- 總結（固定底部） -->
+    <!-- 總結 -->
     <div id="totalSummary" class="summary" style="display:none;"></div>
   </div>
 
   <script>
     let trips = [];
+
+    // 自動把 Excel 時間分數 (0.25) 轉成正常時間 (06:00)
+    function formatTime(val) {
+      if (!val) return '';
+      if (typeof val === 'number') {
+        const hours = Math.floor(val * 24);
+        const minutes = Math.round((val * 24 - hours) * 60);
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      }
+      return String(val).trim();
+    }
+
+    // 重點欄位如果有超長網址 → 自動轉成可點擊連結
+    function makeLink(text) {
+      if (!text) return '';
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      return text.replace(urlRegex, match => 
+        `<a href="${match}" target="_blank" class="link">🔗 點擊開啟連結</a>`
+      );
+    }
 
     function extractCost(val) {
       if (!val) return 0;
@@ -386,14 +361,17 @@
         grouped[date].push(row);
       });
 
-      Object.keys(grouped).sort().forEach((date, idx) => {
+      Object.keys(grouped).sort().forEach(date => {
+        const dayId = 'day-' + date.replace(/[^a-zA-Z0-9]/g, '');
         const tab = document.createElement('div');
-        tab.className = 'day-tab' + (idx === 0 ? ' active' : '');
+        tab.className = 'day-tab';
         tab.textContent = date;
+        tab.dataset.dayId = dayId;
         tab.onclick = () => {
           document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
           tab.classList.add('active');
-          document.getElementById('timelineContainer').scrollIntoView({ behavior: 'smooth' });
+          const target = document.getElementById(dayId);
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         };
         tabsContainer.appendChild(tab);
       });
@@ -413,9 +391,10 @@
       Object.keys(grouped).sort().forEach(date => {
         const dayTrips = grouped[date];
         const dayTotal = dayTrips.reduce((sum, r) => sum + extractCost(r['$$']), 0);
+        const dayId = 'day-' + date.replace(/[^a-zA-Z0-9]/g, '');
 
         let html = `
-          <div class="day-section">
+          <div class="day-section" id="${dayId}">
             <div class="day-header">
               ${date}
               <span class="day-total">小計 RM ${dayTotal.toFixed(0)}</span>
@@ -427,14 +406,14 @@
           const currentLoc = r['地點'] || '';
           const modeIcon = getTransportMode(r['交通']);
           const encodedCurrent = encodeURIComponent(currentLoc);
-          let mapUrl = prevLoc 
+          const mapUrl = prevLoc 
             ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(prevLoc)}&destination=${encodedCurrent}&travelmode=driving`
             : `https://www.google.com/maps/search/?api=1&query=${encodedCurrent}`;
 
           html += `
             <div class="event">
               <div class="time-dot">
-                <div class="time">${r['時間'] || ''}</div>
+                <div class="time">${formatTime(r['時間'])}</div>
                 <div class="dot">${i+1}</div>
               </div>
               <div class="event-card">
@@ -442,7 +421,7 @@
                 <small>
                   營業時間：${r['營業時間'] || '—'}<br>
                   費用：${r['$$'] || '—'} （計算 RM ${costNum.toFixed(0)}）<br>
-                  重點：${r['重點'] || ''}
+                  重點：${makeLink(r['重點'] || '')}
                 </small>
                 <div class="transport">
                   ${modeIcon} ${r['交通'] || '—'}
@@ -494,20 +473,7 @@
         {"日期":"2026/04/05 (Day 1)","時間":"09:30","地點":"吉隆坡國際機場 (KLIA)","營業時間":"全天","$$":"RM 0","交通":"KLIA Ekspres","重點":"抵達馬來西亞"},
         {"日期":"2026/04/05 (Day 1)","時間":"11:00","地點":"Bukit Bintang 酒店區","營業時間":"全天","$$":"RM 180","交通":"Grab","重點":"Check-in + 午餐"},
         {"日期":"2026/04/05 (Day 1)","時間":"14:00","地點":"中央市場 (Pasar Seni)","營業時間":"10:00-22:00","$$":"RM 45","交通":"Walking","重點":"手工藝品"},
-        {"日期":"2026/04/05 (Day 1)","時間":"18:30","地點":"Jalan Alor 美食街","營業時間":"17:00-00:00","$$":"RM 85","交通":"Grab","重點":"街頭美食"},
-
-        {"日期":"2026/04/06 (Day 2)","時間":"09:00","地點":"雙子塔 (Petronas Twin Towers)","營業時間":"09:00-21:00","$$":"RM 85","交通":"Grab","重點":"登塔觀景"},
-        {"日期":"2026/04/06 (Day 2)","時間":"12:00","地點":"KLCC 公園","營業時間":"全天","$$":"RM 0","交通":"Walking","重點":"噴泉拍照"},
-        {"日期":"2026/04/06 (Day 2)","時間":"15:00","地點":"國家清真寺","營業時間":"09:00-19:00","$$":"RM 0","交通":"MRT","重點":"建築巡禮"},
-
-        {"日期":"2026/04/07 (Day 3)","時間":"08:00","地點":"黑風洞 (Batu Caves)","營業時間":"07:00-19:00","$$":"RM 0","交通":"Grab","重點":"彩虹階梯"},
-        {"日期":"2026/04/07 (Day 3)","時間":"12:00","地點":"雲頂高原","營業時間":"全天","$$":"RM 120","交通":"Cable Car","重點":"纜車遊樂園"},
-
-        {"日期":"2026/04/08 (Day 4)","時間":"07:30","地點":"馬六甲紅屋 (Stadthuys)","營業時間":"09:00-17:00","$$":"RM 10","交通":"Bus","重點":"荷蘭殖民建築"},
-        {"日期":"2026/04/08 (Day 4)","時間":"13:00","地點":"雞場街 Jonker Street","營業時間":"10:00-22:00","$$":"RM 80","交通":"Walking","重點":"美食古董"},
-
-        {"日期":"2026/04/09 (Day 5)","時間":"09:00","地點":"Suria KLCC 購物中心","營業時間":"10:00-22:00","$$":"RM 120","交通":"Grab","重點":"最後購物"},
-        {"日期":"2026/04/09 (Day 5)","時間":"16:00","地點":"吉隆坡國際機場 (KLIA)","營業時間":"全天","$$":"RM 0","交通":"KLIA Ekspres","重點":"返程"}
+        {"日期":"2026/04/05 (Day 1)","時間":"18:30","地點":"Jalan Alor 美食街","營業時間":"17:00-00:00","$$":"RM 85","交通":"Grab","重點":"街頭美食"}
       ];
       localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
       renderAll();
