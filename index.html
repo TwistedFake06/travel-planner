@@ -229,54 +229,68 @@
       width: 100%;
     }
 
-    /* Modal */
+    /* ========== 優化後的 Modal（變小、更緊湊） ========== */
     .modal {
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.65);
       z-index: 1000;
       align-items: center;
       justify-content: center;
     }
     .modal-content {
       background: white;
-      width: 92%;
-      max-width: 420px;
+      width: 90%;
+      max-width: 380px;
       border-radius: 24px;
-      padding: 24px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+      max-height: 85vh;
+      overflow-y: auto;
     }
     .modal h2 {
-      margin: 0 0 20px;
-      font-size: 1.35rem;
+      margin: 0 0 16px;
+      font-size: 1.3rem;
       color: var(--primary);
+      text-align: center;
     }
     .modal label {
       display: block;
-      margin: 16px 0 6px;
+      margin: 14px 0 5px;
       font-size: 0.95rem;
       color: #555;
+      font-weight: 500;
     }
-    .modal input, .modal textarea, .modal select {
+    .modal input, .modal textarea {
       width: 100%;
-      padding: 12px;
+      padding: 11px 14px;
       border: 1px solid #ddd;
       border-radius: 12px;
       font-size: 1rem;
+      background: #fafafa;
+    }
+    .modal textarea {
+      resize: vertical;
+      min-height: 80px;
     }
     .modal-buttons {
-      margin-top: 28px;
+      margin-top: 24px;
       display: flex;
-      gap: 12px;
+      gap: 10px;
     }
     .modal-buttons button {
       flex: 1;
-      padding: 14px;
+      padding: 13px 16px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
     }
-    .delete-btn {
-      background: #f44336 !important;
-    }
+    .cancel-btn { background: #e91e63; color: white; }
+    .delete-btn { background: #ff5722; color: white; }
+    .save-btn { background: #e91e63; color: white; }
 
     a.link {
       color: #1e88e5;
@@ -311,7 +325,7 @@
     <div id="timelineContainer" class="timeline-container"></div>
   </div>
 
-  <!-- 編輯 Modal -->
+  <!-- 編輯 Modal（已大幅縮小） -->
   <div id="editModal" class="modal">
     <div class="modal-content">
       <h2>✏️ 編輯行程</h2>
@@ -338,9 +352,9 @@
       <textarea id="edit-note" rows="3" placeholder="重點描述或連結"></textarea>
 
       <div class="modal-buttons">
-        <button onclick="hideModal()">取消</button>
+        <button onclick="hideModal()" class="cancel-btn">取消</button>
         <button onclick="deleteCurrentEvent()" class="delete-btn">🗑️ 刪除</button>
-        <button onclick="saveEdit()" style="background:var(--primary);">💾 儲存</button>
+        <button onclick="saveEdit()" class="save-btn">💾 儲存</button>
       </div>
     </div>
   </div>
@@ -610,7 +624,7 @@
       ];
       localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
       renderAll();
-      alert("✅ 已載入馬來西亞 5 天經典範例！\n\n每張卡片右上角 ✏️ 可編輯喔～");
+      alert("✅ 已載入範例！\n\n現在點擊卡片右上角 ✏️ 即可編輯～");
     }
 
     window.onload = () => {
