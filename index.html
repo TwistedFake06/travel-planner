@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1e88e5">
   <title>我的旅行行程</title>
 
@@ -15,16 +15,17 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
+      padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #f0f4f8;
       color: #333;
       height: 100vh;
+      overflow: hidden;           /* 重要：body 保持 hidden */
       display: flex;
       flex-direction: column;
-      overflow: hidden; /* 保留，但由內層處理滑動 */
     }
 
-    /* Header 永遠固定 */
+    /* Header 永遠固定在最上方 */
     .app-header {
       background: linear-gradient(135deg, #1e88e5, #1565c0);
       color: white;
@@ -33,6 +34,7 @@
       align-items: center;
       justify-content: space-between;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      flex-shrink: 0;             /* 防止被壓縮 */
       z-index: 100;
     }
     .app-header h1 {
@@ -41,13 +43,13 @@
       font-weight: 600;
     }
 
-    /* 關鍵修正：讓「上面所有 button」都能正常 scroll up */
-    .main-content {
+    /* 關鍵修正：可滑動的主要內容區 */
+    .scrollable-content {
       flex: 1;
       overflow-y: auto;
-      -webkit-overflow-scrolling: touch; /* iOS 順暢滑動 */
-      display: flex;
-      flex-direction: column;
+      -webkit-overflow-scrolling: touch;   /* iOS Safari 順暢滑動 */
+      padding-bottom: 20px;
+      background: #f0f4f8;
     }
 
     /* 上傳按鈕區 */
@@ -81,6 +83,7 @@
       gap: 8px;
       border-bottom: 1px solid #eee;
       scrollbar-width: none;
+      flex-shrink: 0;
     }
     .day-tab {
       flex: 0 0 auto;
@@ -96,12 +99,10 @@
       color: white;
     }
 
-    /* Timeline - 現在可以自由滑到最頂部 */
+    /* Timeline */
     .timeline-container {
-      padding: 12px 16px 80px;
-      flex: 1;
+      padding: 12px 16px;
     }
-
     .day-section { margin-bottom: 32px; }
     .day-header {
       display: flex;
@@ -246,8 +247,8 @@
     <div style="font-size:1.4rem;">❔ ✏️ 🔗</div>
   </div>
 
-  <!-- 關鍵修正：把所有可滑動內容包成一個區塊 -->
-  <div class="main-content">
+  <!-- 這層是解決 Safari 無法滑到最上面的關鍵 -->
+  <div class="scrollable-content">
     <div class="upload">
       <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
       <button class="btn-primary" onclick="document.getElementById('fileInput').click()">📤 上傳 Excel / CSV</button>
@@ -281,291 +282,9 @@
   </div>
 
   <script>
-    /* 以下 JS 與上一版完全相同（已包含 Excel 完美支援） */
-    let trips = [];
-    let currentEditIndex = -1;
-
-    function formatTime(val) {
-      if (!val) return '';
-      if (typeof val === 'number') {
-        const hours = Math.floor(val * 24);
-        const minutes = Math.round((val * 24 - hours) * 60);
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-      }
-      return String(val).trim();
-    }
-
-    function makeLink(text) {
-      if (!text) return '';
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
-      return text.replace(urlRegex, match => `<a href="${match}" target="_blank" class="link">🔗 點擊開啟連結</a>`);
-    }
-
-    function extractCost(val) {
-      if (!val) return 0;
-      const str = String(val).toUpperCase().replace(/RM| |\$|,/g, '').trim();
-      const matches = str.match(/\d+\.?\d*/g);
-      if (!matches) return 0;
-      const nums = matches.map(Number);
-      return nums.length === 1 ? nums[0] : (nums[0] + nums[nums.length-1]) / 2;
-    }
-
-    function getTransportMode(transport) {
-      const t = (transport || '').toLowerCase();
-      if (t.includes('grab') || t.includes('車') || t.includes('taxi')) return '🚕';
-      if (t.includes('mrt') || t.includes('ets') || t.includes('bus') || t.includes('渡輪')) return '🚇';
-      return '🚶';
-    }
-
-    document.getElementById('fileInput').addEventListener('change', e => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = ev => {
-        try {
-          let raw = [];
-          if (file.name.toLowerCase().endsWith('.xlsx')) {
-            const data = new Uint8Array(ev.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            raw = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: false });
-            raw = convertExcelToObjects(raw);
-          } else {
-            raw = parseCSV(ev.target.result);
-          }
-          trips = raw.filter(r => (r['時間'] || r['地點'] || '').toString().trim() !== '');
-          localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
-          renderAll();
-          alert('✅ 匯入成功！共 ' + trips.length + ' 筆行程');
-        } catch(err) {
-          alert('讀取失敗，請確認檔案格式');
-        }
-      };
-      file.name.toLowerCase().endsWith('.xlsx') ? reader.readAsArrayBuffer(file) : reader.readAsText(file);
-    });
-
-    function convertExcelToObjects(rows) {
-      if (rows.length < 2) return [];
-      const headers = rows[0].map(h => String(h || '').trim());
-      const dataRows = rows.slice(1);
-      const result = [];
-      let currentDate = '';
-      for (let row of dataRows) {
-        const obj = {};
-        let hasContent = false;
-        headers.forEach((header, i) => {
-          let key = header;
-          if (/日期|date/i.test(header)) key = '日期';
-          else if (/時間|time/i.test(header)) key = '時間';
-          else if (/地點|location|place/i.test(header)) key = '地點';
-          else if (/營業時間|hours|open/i.test(header)) key = '營業時間';
-          else if (/費用|cost|price|\$\$|rm/i.test(header)) key = '$$';
-          else if (/交通|transport/i.test(header)) key = '交通';
-          else if (/重點|note|備註/i.test(header)) key = '重點';
-          let value = row[i] == null ? '' : String(row[i]).trim();
-          obj[key] = value;
-          if (key === '日期' && value) currentDate = value;
-          if (value) hasContent = true;
-        });
-        if (currentDate && !obj['日期']) obj['日期'] = currentDate;
-        if (hasContent) result.push(obj);
-      }
-      return result;
-    }
-
-    function parseCSV(csv) {
-      const lines = csv.trim().split('\n');
-      if (lines.length === 0) return [];
-      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-      const result = [];
-      for (let i = 1; i < lines.length; i++) {
-        if (!lines[i].trim()) continue;
-        const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
-        const obj = {};
-        headers.forEach((h, idx) => obj[h] = values[idx] || '');
-        result.push(obj);
-      }
-      return result;
-    }
-
-    function exportCSV() {
-      if (trips.length === 0) return alert('沒有資料');
-      let csv = '日期,時間,地點,營業時間,$$,交通,重點\n';
-      trips.forEach(r => {
-        csv += `"${(r['日期']||'').replace(/"/g,'""')}","${(r['時間']||'').replace(/"/g,'""')}","${(r['地點']||'').replace(/"/g,'""')}","${(r['營業時間']||'').replace(/"/g,'""')}","${(r['$$']||'').replace(/"/g,'""')}","${(r['交通']||'').replace(/"/g,'""')}","${(r['重點']||'').replace(/"/g,'""')}"\n`;
-      });
-      const blob = new Blob(["\uFEFF" + csv], {type: 'text/csv;charset=utf-8'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'My-Trip.csv';
-      a.click();
-    }
-
-    function renderAll() {
-      renderDayTabs();
-      renderTimeline();
-    }
-
-    function renderDayTabs() {
-      const container = document.getElementById('dayTabs');
-      container.innerHTML = '';
-      const grouped = {};
-      trips.forEach(row => {
-        const date = row['日期'] || '未分類';
-        if (!grouped[date]) grouped[date] = [];
-        grouped[date].push(row);
-      });
-      Object.keys(grouped).sort().forEach(date => {
-        const dayId = 'day-' + date.replace(/[^a-zA-Z0-9]/g, '');
-        const tab = document.createElement('div');
-        tab.className = 'day-tab';
-        tab.textContent = date;
-        tab.dataset.dayId = dayId;
-        tab.onclick = () => {
-          document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          document.getElementById(dayId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        };
-        container.appendChild(tab);
-      });
-    }
-
-    function renderTimeline() {
-      const container = document.getElementById('timelineContainer');
-      container.innerHTML = '';
-      const grouped = {};
-      trips.forEach(row => {
-        const date = row['日期'] || '未分類';
-        if (!grouped[date]) grouped[date] = [];
-        grouped[date].push(row);
-      });
-      let globalIdx = 0;
-      Object.keys(grouped).sort().forEach(date => {
-        const dayTrips = grouped[date];
-        const dayTotal = dayTrips.reduce((sum, r) => sum + extractCost(r['$$']), 0);
-        const dayId = 'day-' + date.replace(/[^a-zA-Z0-9]/g, '');
-        let html = `
-          <div class="day-section" id="${dayId}">
-            <div class="day-header">
-              ${date}
-              <span class="day-total">小計 RM ${dayTotal.toFixed(0)}</span>
-            </div>
-            <button class="add-event-btn" onclick="addNewEvent('${date}')">＋ 新增此天活動</button>`;
-        dayTrips.forEach(r => {
-          const costNum = extractCost(r['$$']);
-          const currentLoc = r['地點'] || '';
-          const modeIcon = getTransportMode(r['交通']);
-          const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentLoc)}`;
-          html += `
-            <div class="event">
-              <div class="time-dot">
-                <div class="time">${formatTime(r['時間'])}</div>
-                <div class="dot">${globalIdx + 1}</div>
-              </div>
-              <div class="event-card">
-                <span onclick="showEditModal(${globalIdx})" class="edit-icon">✏️</span>
-                <h3>${currentLoc}</h3>
-                <small>
-                  營業時間：${r['營業時間'] || '—'}<br>
-                  費用：${r['$$'] || '—'} （計算 RM ${costNum.toFixed(0)}）<br>
-                  重點：${makeLink(r['重點'] || '')}
-                </small>
-                <div class="transport">
-                  ${modeIcon} ${r['交通'] || '—'}
-                </div>
-                <button class="nav-btn" onclick="window.open('${mapUrl}','_blank')">🗺️ 導航到此地點</button>
-              </div>
-            </div>`;
-          globalIdx++;
-        });
-        html += `</div>`;
-        container.innerHTML += html;
-      });
-    }
-
-    function showEditModal(index) {
-      currentEditIndex = index;
-      const item = trips[index];
-      document.getElementById('edit-date').value = item['日期'] || '';
-      document.getElementById('edit-time').value = item['時間'] || '';
-      document.getElementById('edit-location').value = item['地點'] || '';
-      document.getElementById('edit-hours').value = item['營業時間'] || '';
-      document.getElementById('edit-cost').value = item['$$'] || '';
-      document.getElementById('edit-transport').value = item['交通'] || '';
-      document.getElementById('edit-note').value = item['重點'] || '';
-      document.getElementById('editModal').style.display = 'flex';
-    }
-
-    function hideModal() { document.getElementById('editModal').style.display = 'none'; }
-
-    function saveEdit() {
-      if (currentEditIndex === -1) return;
-      trips[currentEditIndex] = {
-        ...trips[currentEditIndex],
-        '日期': document.getElementById('edit-date').value,
-        '時間': document.getElementById('edit-time').value,
-        '地點': document.getElementById('edit-location').value,
-        '營業時間': document.getElementById('edit-hours').value,
-        '$$': document.getElementById('edit-cost').value,
-        '交通': document.getElementById('edit-transport').value,
-        '重點': document.getElementById('edit-note').value
-      };
-      localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
-      hideModal();
-      renderAll();
-    }
-
-    function deleteCurrentEvent() {
-      if (currentEditIndex === -1) return;
-      if (confirm('確定要刪除這個行程嗎？')) {
-        trips.splice(currentEditIndex, 1);
-        localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
-        hideModal();
-        renderAll();
-      }
-    }
-
-    function addNewEvent(defaultDate) {
-      const newEvent = {
-        '日期': defaultDate,
-        '時間': '10:00',
-        '地點': '新地點',
-        '營業時間': '全天',
-        '$$': 'RM 0',
-        '交通': 'Walking',
-        '重點': ''
-      };
-      trips.push(newEvent);
-      localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
-      renderAll();
-      showEditModal(trips.length - 1);
-    }
-
-    function clearData() {
-      if (confirm('確定清除所有資料？')) {
-        localStorage.removeItem('malaysiaTrips');
-        trips = [];
-        renderAll();
-      }
-    }
-
-    function loadSampleData() {
-      trips = [
-        {"日期":"2026/04/05 (Day 1)","時間":"09:30","地點":"吉隆坡國際機場 (KLIA)","營業時間":"全天","$$":"RM 0","交通":"KLIA Ekspres","重點":"抵達馬來西亞"},
-        {"日期":"2026/04/05 (Day 1)","時間":"11:00","地點":"Bukit Bintang 酒店區","營業時間":"全天","$$":"RM 180","交通":"Grab","重點":"Check-in + 午餐"},
-        {"日期":"2026/04/05 (Day 1)","時間":"14:00","地點":"中央市場 (Pasar Seni)","營業時間":"10:00-22:00","$$":"RM 45","交通":"Walking","重點":"手工藝品"},
-        {"日期":"2026/04/05 (Day 1)","時間":"18:30","地點":"Jalan Alor 美食街","營業時間":"17:00-00:00","$$":"RM 85","交通":"Grab","重點":"街頭美食"}
-      ];
-      localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
-      renderAll();
-      alert("✅ 已載入馬來西亞 5 天範例！");
-    }
-
-    window.onload = () => {
-      const saved = localStorage.getItem('malaysiaTrips');
-      if (saved) trips = JSON.parse(saved);
-      renderAll();
-    };
+    // ...（這裡的 JavaScript 與上一版完全相同，我為了避免重複就不貼了）
+    // 請直接使用你之前最後一版中從 <script> 到 </script> 的全部內容
+    // 如果你要我把完整 JS 也一起貼上，請說「給我完整版含 JS」，我立刻補上。
   </script>
 </body>
 </html>
