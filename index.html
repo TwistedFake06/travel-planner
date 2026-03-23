@@ -14,8 +14,7 @@
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #f0f4f8;
       color: #333;
@@ -36,11 +35,7 @@
       flex-shrink: 0;
       z-index: 100;
     }
-    .app-header h1 {
-      margin: 0;
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
+    .app-header h1 { margin:0; font-size:1.25rem; font-weight:600; }
 
     .scrollable-content {
       flex: 1;
@@ -303,11 +298,12 @@
 
     function getTransportMode(transport) {
       const t = (transport || '').toLowerCase();
-      if (t.includes('grab') || t.includes('車') || t.includes('taxi')) return '🚕';
-      if (t.includes('mrt') || t.includes('ets') || t.includes('bus') || t.includes('渡輪')) return '🚇';
-      return '🚶';
+      if (t.includes('grab') || t.includes('車') || t.includes('taxi')) return 'driving';
+      if (t.includes('mrt') || t.includes('ets') || t.includes('bus') || t.includes('渡輪')) return 'transit';
+      return 'walking';
     }
 
+    // 檔案匯入
     document.getElementById('fileInput').addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
@@ -430,11 +426,15 @@
         if (!grouped[date]) grouped[date] = [];
         grouped[date].push(row);
       });
+
+      let prevLoc = '';
       let globalIdx = 0;
+
       Object.keys(grouped).sort().forEach(date => {
         const dayTrips = grouped[date];
         const dayTotal = dayTrips.reduce((sum, r) => sum + extractCost(r['$$']), 0);
         const dayId = 'day-' + date.replace(/[^a-zA-Z0-9]/g, '');
+
         let html = `
           <div class="day-section" id="${dayId}">
             <div class="day-header">
@@ -442,11 +442,16 @@
               <span class="day-total">小計 RM ${dayTotal.toFixed(0)}</span>
             </div>
             <button class="add-event-btn" onclick="addNewEvent('${date}')">＋ 新增此天活動</button>`;
+
         dayTrips.forEach(r => {
           const costNum = extractCost(r['$$']);
           const currentLoc = r['地點'] || '';
-          const modeIcon = getTransportMode(r['交通']);
-          const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentLoc)}`;
+          const mode = getTransportMode(r['交通']);
+
+          let mapUrl = prevLoc 
+            ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(prevLoc)}&destination=${encodeURIComponent(currentLoc)}&travelmode=${mode}`
+            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentLoc)}`;
+
           html += `
             <div class="event">
               <div class="time-dot">
@@ -462,11 +467,14 @@
                   重點：${makeLink(r['重點'] || '')}
                 </small>
                 <div class="transport">
-                  ${modeIcon} ${r['交通'] || '—'}
+                  ${mode === 'driving' ? '🚕' : mode === 'transit' ? '🚇' : '🚶'} ${r['交通'] || '—'}
                 </div>
-                <button class="nav-btn" onclick="window.open('${mapUrl}','_blank')">🗺️ 導航到此地點</button>
+                <button class="nav-btn" onclick="window.open('${mapUrl}','_blank')">
+                  🗺️ ${prevLoc ? '從上一個地點導航' : '導航到此地點'}
+                </button>
               </div>
             </div>`;
+          prevLoc = currentLoc;
           globalIdx++;
         });
         html += `</div>`;
