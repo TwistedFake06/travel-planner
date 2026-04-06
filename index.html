@@ -61,7 +61,6 @@
       cursor: pointer;
     }
     .btn-primary { background: linear-gradient(135deg, #1e88e5, #42a5f5); }
-    .btn-success { background: linear-gradient(135deg, #66bb6a, #43a047); }
     .btn-danger  { background: linear-gradient(135deg, #ef5350, #e53935); }
 
     .day-tabs {
@@ -88,7 +87,6 @@
       color: white;
     }
 
-    /* ==================== 新時間軸樣式 ==================== */
     .timeline-container {
       padding: 20px 16px 40px;
       position: relative;
@@ -282,11 +280,8 @@
 
   <div class="scrollable-content">
     <div class="upload">
-      <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
-      <button class="btn-primary" onclick="document.getElementById('fileInput').click()">📤 上傳 Excel / CSV</button>
-      <button class="btn-primary" onclick="loadSampleData()">📋 載入馬來西亞 5 天範例</button>
-      <button class="btn-primary" onclick="exportCSV()">📥 匯出 CSV</button>
-      <button class="btn-primary" onclick="window.print()">📄 列印 / 匯出 PDF</button>
+      <input type="file" id="fileInput" accept=".xlsx,.csv,.json" style="display:none;">
+      <button class="btn-primary" onclick="document.getElementById('fileInput').click()">📤 上傳 Excel / CSV / JSON</button>
       <button class="btn-danger" onclick="clearData()">🗑️ 清除所有資料</button>
     </div>
 
@@ -349,32 +344,55 @@
       return 'walking';
     }
 
-    // 檔案上傳處理
+    // 檔案上傳處理 - 完整支援 Excel、CSV、JSON
     document.getElementById('fileInput').addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
+
       const reader = new FileReader();
+      const filename = file.name.toLowerCase();
+
       reader.onload = ev => {
         try {
-          let raw = [];
-          if (file.name.toLowerCase().endsWith('.xlsx')) {
+          let tripsData = [];
+
+          if (filename.endsWith('.xlsx')) {
             const data = new Uint8Array(ev.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            raw = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: false });
-            raw = convertExcelToObjects(raw);
-          } else {
-            raw = parseCSV(ev.target.result);
+            const raw = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: false });
+            tripsData = convertExcelToObjects(raw);
+          } 
+          else if (filename.endsWith('.csv')) {
+            tripsData = parseCSV(ev.target.result);
+          } 
+          else if (filename.endsWith('.json')) {
+            const jsonContent = JSON.parse(ev.target.result);
+            if (!Array.isArray(jsonContent)) throw new Error("JSON 必須是一個陣列");
+            tripsData = jsonContent;
+          } 
+          else {
+            throw new Error("不支援的檔案格式");
           }
-          trips = raw.filter(r => (r['時間'] || r['地點'] || '').toString().trim() !== '');
+
+          trips = tripsData.filter(r => (r['時間'] || r['地點'] || r['日期'] || '').toString().trim() !== '');
+
           localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
           renderAll();
-          alert('✅ 匯入成功！共 ' + trips.length + ' 筆行程');
+          
+          alert(`✅ 匯入成功！\n共 ${trips.length} 筆行程\n檔案：${file.name}`);
+          
         } catch(err) {
-          alert('讀取失敗，請確認檔案格式');
+          console.error(err);
+          alert('❌ 讀取失敗：\n' + err.message);
         }
       };
-      file.name.toLowerCase().endsWith('.xlsx') ? reader.readAsArrayBuffer(file) : reader.readAsText(file);
+
+      if (filename.endsWith('.xlsx')) {
+        reader.readAsArrayBuffer(file);
+      } else {
+        reader.readAsText(file);
+      }
     });
 
     function convertExcelToObjects(rows) {
@@ -419,19 +437,6 @@
         result.push(obj);
       }
       return result;
-    }
-
-    function exportCSV() {
-      if (trips.length === 0) return alert('沒有資料');
-      let csv = '日期,時間,地點,營業時間,$$,交通,重點\n';
-      trips.forEach(r => {
-        csv += `"${(r['日期']||'').replace(/"/g,'""')}","${(r['時間']||'').replace(/"/g,'""')}","${(r['地點']||'').replace(/"/g,'""')}","${(r['營業時間']||'').replace(/"/g,'""')}","${(r['$$']||'').replace(/"/g,'""')}","${(r['交通']||'').replace(/"/g,'""')}","${(r['重點']||'').replace(/"/g,'""')}"\n`;
-      });
-      const blob = new Blob(["\uFEFF" + csv], {type: 'text/csv;charset=utf-8'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'My-Trip.csv';
-      a.click();
     }
 
     function renderAll() {
@@ -580,40 +585,12 @@
       }
     }
 
-    function addNewEvent(defaultDate) {
-      const newEvent = {
-        '日期': defaultDate,
-        '時間': '10:00',
-        '地點': '新地點',
-        '營業時間': '全天',
-        '$$': 'RM 0',
-        '交通': 'Walking',
-        '重點': ''
-      };
-      trips.push(newEvent);
-      localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
-      renderAll();
-      showEditModal(trips.length - 1);
-    }
-
     function clearData() {
       if (confirm('確定清除所有資料？')) {
         localStorage.removeItem('malaysiaTrips');
         trips = [];
         renderAll();
       }
-    }
-
-    function loadSampleData() {
-      trips = [
-        {"日期":"2026/04/05 (Day 1)","時間":"09:30","地點":"吉隆坡國際機場 (KLIA)","營業時間":"全天","$$":"RM 0","交通":"KLIA Ekspres","重點":"抵達馬來西亞"},
-        {"日期":"2026/04/05 (Day 1)","時間":"11:00","地點":"Bukit Bintang 酒店區","營業時間":"全天","$$":"RM 180","交通":"Grab","重點":"Check-in + 午餐"},
-        {"日期":"2026/04/05 (Day 1)","時間":"14:00","地點":"中央市場 (Pasar Seni)","營業時間":"10:00-22:00","$$":"RM 45","交通":"Walking","重點":"手工藝品"},
-        {"日期":"2026/04/05 (Day 1)","時間":"18:30","地點":"Jalan Alor 美食街","營業時間":"17:00-00:00","$$":"RM 85","交通":"Grab","重點":"街頭美食"}
-      ];
-      localStorage.setItem('malaysiaTrips', JSON.stringify(trips));
-      renderAll();
-      alert("✅ 已載入範例！");
     }
 
     window.onload = () => {
